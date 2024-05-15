@@ -395,6 +395,10 @@ impl Font {
                 ));
             }
             if let Some(p) = path.to_str() {
+        let family_name;
+
+        #[cfg(feature = "ttf-parser")]
+        {
                 let font_data = std::fs::read(path)?;
                 let face = match ttf_parser::Face::parse(&font_data, 0) {
                     Ok(f) => f,
@@ -402,13 +406,18 @@ impl Font {
                         return Err(FltkError::Internal(FltkErrorKind::FailedOperation));
                     }
                 };
-                let family_name = face
+                family_name = face
                     .names()
                     .into_iter()
                     .find(|name| {
                         name.name_id == ttf_parser::name_id::FULL_NAME && name.is_unicode()
                     })
                     .and_then(|name| name.to_string());
+        }
+
+        #[cfg(not(feature = "ttf-parser"))]
+        {family_name = Some(p.to_string());}
+
                 let path = CString::safe_new(p);
                 let ret = fl::Fl_load_font(path.as_ptr());
                 if let Some(family_name) = family_name {
